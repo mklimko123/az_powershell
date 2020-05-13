@@ -1,0 +1,57 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "modulesUrl": {
+            "type": "string"
+        },
+        "SASToken": {
+            "type": "securestring"
+        },
+        "servicePrincipalClientId": {
+            "type": "securestring"
+        },
+        "servicePrincipalClientSecret": {
+            "type": "securestring"
+        }
+    },
+    "variables": {
+        "acrName": "klimkoACRdemo",
+        "aksName": "klimkoAKSdemo"
+    },
+    "resources": [
+        {
+            "name": "[variables('acrName')]",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2018-05-01",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[concat(parameters('modulesUrl'),'/acr.json',parameters('SASToken'))]"
+                }
+            }
+        },
+        {
+            "name": "[variables('aksName')]",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2018-05-01",
+            "dependsOn": [
+                "[variables('acrName')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[concat(parameters('modulesUrl'),'/aks.json',parameters('SASToken'))]"
+                },
+                "parameters": {
+                    "servicePrincipalClientId": {
+                        "value": "[parameters('servicePrincipalClientId')]"
+                    },
+                    "servicePrincipalClientSecret": {
+                        "value": "[parameters('servicePrincipalClientSecret')]"
+                    } 
+                }
+            }
+        }
+    ]
+}

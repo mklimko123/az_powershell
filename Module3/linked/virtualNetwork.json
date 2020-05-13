@@ -1,0 +1,44 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "VNetSettings": {
+            "type": "object"
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]"
+        }
+    },
+    "variables": {
+        "VNetAddressPrefix": "[parameters('VNetSettings').addressPrefixes[0].addressPrefix]"
+    },
+    "resources": [
+        {
+            "apiVersion": "2018-11-01",
+            "type": "Microsoft.Network/virtualNetworks",
+            "name": "[parameters('VNetSettings').name]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[variables('VNetAddressPrefix')]"
+                    ] 
+                },
+                "copy": [
+                    {
+                        "name": "subnets",
+                        "count": "[length(parameters('VNetSettings').subnets)]",
+                        "mode": "serial",
+                        "input": {
+                            "name": "[parameters('VNetSettings').subnets[copyIndex('subnets')].name]",
+                            "properties": {
+                                "addressPrefix": "[parameters('VNetSettings').subnets[copyIndex('subnets')].addressPrefix]"
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    ]
+}

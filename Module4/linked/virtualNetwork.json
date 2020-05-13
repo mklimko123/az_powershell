@@ -1,0 +1,54 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "VNetSettings": {
+            "type": "object"
+        },
+        "vnetPrefix": {
+            "type": "string"  
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]"
+        }
+    },
+    "variables": {
+        "VNetAddressPrefix": "[parameters('VNetSettings').addressPrefixes[0].addressPrefix]",
+        "uniqueVNetName": "[concat(toLower(parameters('vnetPrefix')),parameters('VNetSettings').name)]"
+    },
+    "resources": [
+        {
+            "apiVersion": "2018-11-01",
+            "type": "Microsoft.Network/virtualNetworks",
+            "name": "[variables('uniqueVNetName')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[variables('VNetAddressPrefix')]"
+                    ]
+                },
+                "copy": [
+                    {
+                        "name": "subnets",
+                        "count": "[length(parameters('VNetSettings').subnets)]",
+                        "mode": "serial",
+                        "input": {
+                            "name": "[parameters('VNetSettings').subnets[copyIndex('subnets')].name]",
+                            "properties": {
+                                "addressPrefix": "[parameters('VNetSettings').subnets[copyIndex('subnets')].addressPrefix]"
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    ],
+    "outputs": {
+        "FrontEndSubnetID": {
+            "type": "string",
+            "value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('uniqueVNetName'), parameters('VNetSettings').subnets[0].name)]"
+        }
+    }
+}

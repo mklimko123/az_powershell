@@ -1,0 +1,106 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "VNetName": {
+            "type": "string",
+        },
+        "NsgName": {
+            "type": "string",
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]"
+        }
+    },
+    "variables": {
+        "VNetSettings": {
+            "addressPrefixes": [
+                {
+                    "name": "VNetAddressPrefix",
+                    "addressPrefix": "10.10.0.0/16"
+                }
+            ],
+            "subnets": [
+                {
+                    "name": "front-end-subnet",
+                    "addressPrefix": "10.10.1.0/24"
+                }
+            ]
+        }
+    },
+    "resources": [
+        {
+            "apiVersion": "2018-11-01",
+            "type": "Microsoft.Network/virtualNetworks",
+            "name": "[parameters('VNetName')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[variables('VNetSettings').addressPrefixes[0].addressPrefix]"
+                    ]
+                },
+                "copy": [
+                    {
+                        "name": "subnets",
+                        "count": "[length(variables('VNetSettings').subnets)]",
+                        "mode": "serial",
+                        "input": {
+                            "name": "[variables('VNetSettings').subnets[copyIndex('subnets')].name]",
+                            "properties": {
+                                "addressPrefix": "[variables('VNetSettings').subnets[copyIndex('subnets')].addressPrefix]"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "apiVersion": "2019-11-01",
+            "name": "[parameters('NsgName')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "inbound-allow-3389",
+                        "properties": {
+                            "priority": 100,
+                            "access": "Allow",
+                            "direction": "Inbound",
+                            "destinationPortRange": "3389",
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*"
+                        }
+                    },
+                    {
+                        "name": "inbound-allow-8080",
+                        "properties": {
+                            "priority": 110,
+                            "access": "Allow",
+                            "direction": "Inbound",
+                            "destinationPortRange": "8080",
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*"
+                        }
+                    },
+                ]
+            }
+        }
+    ],
+    "outputs": {
+        "subnetId": {
+            "type": "string",
+            "value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('VNetName'), variables('VNetSettings').subnets[0].name)]"
+        },
+        "nsgId": {
+            "type": "string",
+            "value": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('NsgName'))]"
+        }
+    }
+}

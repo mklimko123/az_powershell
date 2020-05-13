@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package >
+  <metadata>
+    <id>AzLabModule8</id>
+    <version>2020.03.22.1</version>
+    <authors>Mikhail Klimko</authors>
+    <owners>Mikhail Klimko</owners>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <license type="expression">MIT</license>
+    <description>NuGet package for Module 8 AzLab</description>
+    <releaseNotes>First release version. No changes were made</releaseNotes>
+    <copyright>Copyright 2020</copyright>
+    <tags>ARM Docker PowerShell</tags>
+  </metadata>
+  <files>
+    <file src="init.ps1" target="" />
+    <file src="arm\**\*.*" target="arm\" />
+    <file src="application\*.*" target="application\" />
+    <file src="kubernetes\*.*" target="kubernetes\" />
+  </files>
+</package>

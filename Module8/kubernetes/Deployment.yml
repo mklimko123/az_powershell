@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: klimkoapp
+spec:
+  selector:
+    matchLabels:
+      app: klimkoapp
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: klimkoapp
+    spec:
+      containers:
+      - name: klimkoapp
+        image: klimkoacrdemo.azurecr.io/klimkoapp:v1
+        ports:
+        - containerPort: 80

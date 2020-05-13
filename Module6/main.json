@@ -1,0 +1,212 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "modulesUrl": {
+            "type": "string"
+        },
+        "SASToken": {
+            "type": "securestring"
+        },
+        "objectID": {
+            "type": "string"
+        },
+        "sqlAdministratorPassword": {
+            "type": "securestring"
+        },
+        "projectNamePrefix": {
+            "type": "string"
+        },
+        "EpamIpsPool": {
+            "type": "array"
+        }
+    },
+    "variables": {
+        "AppServicePlanName": "[concat(parameters('projectNamePrefix'), 'AppServPlan', uniqueString(resourceGroup().id))]",
+        "AppServiceName": "[concat(parameters('projectNamePrefix'), 'WebApp', uniqueString(resourceGroup().id) )]",
+        "location": "eastus",
+        "keyVaultName": "[concat(parameters('projectNamePrefix'), 'KV', uniqueString(resourceGroup().id))]",
+        "sqlAdministratorLogin": "[concat(parameters('projectNamePrefix'), 'SqlAdministrator')]",
+        "sqlSeverName": "[toLower(concat(parameters('projectNamePrefix'), 'SqlServer', uniqueString(resourceGroup().id)))]",
+        "sqlDatabaseName": "[concat(parameters('projectNamePrefix'), 'SqlDB')]",
+        "connectionStringName": "SqlAzureConnString"
+    },
+    "resources": [
+        {
+            "name": "[variables('keyVaultName')]",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2018-05-01",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[concat(parameters('modulesUrl'),'/keyVault.json',parameters('SASToken'))]"
+                },
+                "parameters": {
+                    "keyVaultName": {
+                        "value": "[variables('keyVaultName')]"
+                    },
+                    "objectID": {
+                        "value": "[parameters('objectId')]"
+                    },
+                    "location": {
+                        "value": "[variables('location')]"
+                    }
+                }
+            }
+        },
+        {
+            "name": "secretSqlAdministratorLogin",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2018-05-01",
+            "dependsOn": [
+                "[variables('keyVaultName')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[concat(parameters('modulesUrl'),'/secrets.json',parameters('SASToken'))]"
+                },
+                "parameters": {
+                    "keyVaultName": {
+                        "value": "[variables('keyVaultName')]"
+                    },
+                    "secretName": {
+                        "value": "[variables('sqlAdministratorLogin')]"
+                    },
+                    "secretValue": {
+                        "value": "[parameters('sqlAdministratorPassword')]"
+                    },
+                    "location": {
+                        "value": "[variables('location')]"
+                    }
+                }
+            }
+        },
+        {
+            "name": "[variables('AppServicePlanName')]",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2019-10-01",
+            "dependsOn": [
+                "[variables('keyVaultName')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[concat(parameters('modulesUrl'),'/servicePlan.json',parameters('SASToken'))]"
+                },
+                "parameters": {
+                    "AppServicePlanName": {
+                        "value": "[variables('AppServicePlanName')]"
+                    },
+                    "location": {
+                        "value": "[variables('location')]"
+                    }
+                }
+            }
+        },
+        {
+            "name": "[variables('sqlSeverName')]",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2019-10-01",
+            "dependsOn": [
+                "[variables('AppServicePlanName')]",
+                "[variables('keyVaultName')]",
+                "secretSqlAdministratorLogin"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[concat(parameters('modulesUrl'),'/sql.json',parameters('SASToken'))]"
+                },
+                "parameters": {
+                    "sqlAdministratorLogin": {
+                        "value": "[variables('sqlAdministratorLogin')]"
+                    },
+                    "sqlAdministratorPassword": {
+                        "reference": {
+                            "keyVault": {
+                                "id": "[reference(variables('keyVaultName')).outputs.keyVaultId.value]"
+                            },
+                            "secretName": "[variables('sqlAdministratorLogin')]"
+                        }
+                    },
+                    "sqlServerName": {
+                        "value": "[variables('sqlSeverName')]"
+                    },
+                    "sqlDatabaseName": {
+                        "value": "[variables('sqlDatabaseName')]"
+                    },
+                    "EpamIpsPool": {
+                        "value": "[parameters('EpamIpsPool')]"
+                    },
+                    "location": {
+                        "value": "[variables('location')]"
+                    }
+                }
+            }
+        },
+        {
+            "name": "secretSqlConnectionString",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2018-05-01",
+            "dependsOn": [
+                "[variables('sqlSeverName')]",
+                "[variables('keyVaultName')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[concat(parameters('modulesUrl'),'/secrets.json',parameters('SASToken'))]"
+                },
+                "parameters": {
+                    "keyVaultName": {
+                        "value": "[variables('keyVaultName')]"
+                    },
+                    "secretName": {
+                        "value": "[variables('connectionStringName')]"
+                    },
+                    "secretValue": {
+                        "value": "[reference(variables('sqlSeverName')).outputs.DbConnString.value]"
+                    },
+                    "location": {
+                        "value": "[variables('location')]"
+                    }
+                }
+            }
+        },
+        {
+            "name": "[variables('AppServiceName')]",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2019-10-01",
+            "dependsOn": [
+                "[variables('AppServicePlanName')]",
+                "[variables('sqlSeverName')]",
+                "secretSqlConnectionString"
+
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[concat(parameters('modulesUrl'),'/webApp.json',parameters('SASToken'))]"
+                },
+                "parameters": {
+                    "AppServiceName": {
+                        "value": "[variables('AppServiceName')]"
+                    },
+                    "ServerFarmID": {
+                        "value": "[reference(variables('AppServicePlanName')).outputs.ServerFarmID.value]"
+                    },
+                    "secretUri": {
+                        "value": "[reference('secretSqlConnectionString').outputs.secretUri.value]"
+                    },
+                    "connectionStringName": {
+                        "value": "[variables('connectionStringName')]"
+                    },
+                    "location": {
+                        "value": "[variables('location')]"
+                    }
+                }
+            }
+        }
+    ]
+}

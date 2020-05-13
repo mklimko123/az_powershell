@@ -1,0 +1,145 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "vmName": {
+            "type": "string"
+        },
+        "nicName": {
+            "type": "string"
+        },
+        "pubIpName": {
+            "type": "string"
+        },
+        "osDiskName": {
+            "type": "string"
+        },
+        "osDiskURI": {
+            "type": "string"
+        },
+        "dataDisks": {
+            "type": "array"
+        },
+        "nsgID": {
+            "type": "string"
+        },
+        "subnetID": {
+            "type": "string"
+        },
+        "restorePrefix": {
+            "type": "string"
+        },
+        "vmLocation": {
+            "type": "string"
+        },
+        "vmSize": {
+            "type": "string"
+        },
+        "recoveryVaultName": {
+            "type": "string"
+        }
+    },
+    "variables": {
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "[concat(parameters('restorePrefix'), parameters('pubIpName'))]",
+            "apiVersion": "2019-11-01",
+            "location": "[parameters('vmLocation')]",
+            "properties": {
+                "publicIPAllocationMethod": "Dynamic",
+                "publicIPAddressVersion": "IPv4"
+            },
+            "sku": {
+                "name": "Basic",
+                "tier": "Regional"
+            }
+        },
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[concat(parameters('restorePrefix'), parameters('nicName'))]",
+            "apiVersion": "2019-11-01",
+            "location": "[parameters('vmLocation')]",
+            "properties": {
+                "primary": true,
+                "ipConfigurations": [
+                    {
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIpAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('restorePrefix'), parameters('pubIpName')))]"
+                            },
+                            "subnet": {
+                                "id": "[parameters('subnetID')]"
+                            }
+                        },
+                        "name": "[concat(parameters('restorePrefix'), 'ipconfig1')]"
+                    }
+                ],
+                "networkSecurityGroup": {
+                    "id": "[parameters('nsgID')]"
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('restorePrefix'), parameters('pubIpName')))]"
+            ]
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[concat(parameters('restorePrefix'), parameters('vmName'))]",
+            "apiVersion": "2019-07-01",
+            "location": "[parameters('vmLocation')]",
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[parameters('vmSize')]"
+                },
+                "storageProfile": {
+                    "copy": [
+                        {
+                            "name": "dataDisks",
+                            "count": "[length(parameters('dataDisks'))]",
+                            "input": {
+                                "lun": "[copyIndex('dataDisks')]",
+                                "caching": "None",
+                                "createOption": "Attach",
+                                "name": "[parameters('dataDisks')[copyIndex('dataDisks')].name]",
+                                "vhd": {
+                                    "uri": "[parameters('dataDisks')[copyIndex('dataDisks')].uri]"
+                                }
+                            }
+                        }
+                    ],
+                    "osDisk": {
+                        "osType": "Linux",
+                        "caching": "ReadWrite",
+                        "createOption": "Attach",
+                        "name": "[parameters('osDiskName')]",
+                        "vhd": {
+                            "uri": "[parameters('osDiskURI')]"
+                        }
+                    }
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(parameters('restorePrefix'), parameters('nicName')))]",
+                            "properties": {
+                                "primary": true
+                            }
+                        }
+                    ]
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkInterfaces', concat(parameters('restorePrefix'), parameters('nicName')))]"
+            ]
+        }
+    ],
+    "outputs": {
+        "vmName": {
+            "type": "string",
+            "value": "[concat(parameters('restorePrefix'), parameters('vmName'))]"
+        }
+    }
+}

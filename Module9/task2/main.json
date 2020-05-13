@@ -1,0 +1,191 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "projectPrefix": {
+            "type": "string"
+        },
+        "artifactsLocation": {
+            "type": "string"
+        },
+        "artifactsLocationSasToken": {
+            "type": "securestring"
+        },
+        "objectID": {
+            "type": "string"
+        },
+        "vmNames": {
+            "type": "array"
+        },
+        "keyVaultSecrets": {
+            "type": "secureobject"
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]"
+        }
+    },
+    "variables": {
+        "keyVaultName": "[concat(parameters('projectPrefix'), '-KV-', uniqueString(resourceGroup().id))]",
+        "VNetName": "[concat(parameters('projectPrefix'), '-VNet-', uniqueString(resourceGroup().id))]",
+        "NsgName": "[concat(parameters('projectPrefix'), '-NSG-', uniqueString(resourceGroup().id))]",
+        "aaName": "[concat(parameters('projectPrefix'), '-AA-', uniqueString(resourceGroup().id))]"
+    },
+    "resources": [
+        {
+            "name": "[variables('keyVaultName')]",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2018-05-01",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[concat(parameters('artifactsLocation'), '/provisionKeyVault.json', parameters('artifactsLocationSasToken'))]"
+                },
+                "parameters": {
+                    "keyVaultName": {
+                        "value": "[variables('keyVaultName')]"
+                    },
+                    "objectID": {
+                        "value": "[parameters('objectId')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    }
+                }
+            }
+        },
+        {
+            "name": "keyVaultSecrets",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2018-05-01",
+            "dependsOn": [
+                "[variables('keyVaultName')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[concat(parameters('artifactsLocation'),'/provisionKeyVaultSecret.json', parameters('artifactsLocationSasToken'))]"
+                },
+                "parameters": {
+                    "keyVaultName": {
+                        "value": "[variables('keyVaultName')]"
+                    },
+                    "keyVaultSecrets": {
+                        "value": "[parameters('keyVaultSecrets')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    }
+                }
+            }
+        },
+        {
+            "name": "[variables('VNetName')]",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2018-05-01",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[concat(parameters('artifactsLocation'),'/provisionVirtualNetwork.json',parameters('artifactsLocationSasToken'))]"
+                },
+                "parameters": {
+                    "VNetName": {
+                        "value": "[variables('VNetName')]"
+                    },
+                    "NsgName": {
+                        "value": "[variables('NsgName')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    }
+                }
+            }
+        },
+        {
+            "name": "[variables('aaName')]",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2018-05-01",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[concat(parameters('artifactsLocation'),'/provisionAutomationAccount.json',parameters('artifactsLocationSasToken'))]"
+                },
+                "parameters": {
+                    "artifactsLocation": {
+                        "value": "[parameters('artifactsLocation')]"
+                    },
+                    "artifactsLocationSasToken": {
+                        "value": "[parameters('artifactsLocationSasToken')]"
+                    },
+                    "nodeNames": {
+                        "value": "[parameters('vmNames')]"
+                    },
+                    "automationAccountName": {
+                        "value": "[variables('aaName')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    }
+                }
+            }
+        },
+        {
+            "name": "[parameters('vmNames')[copyIndex()]]",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2018-05-01",
+            "copy": {
+                "name": "vmdeploymentcopy",
+                "count": "[length(parameters('vmNames'))]",
+                "mode": "Parallel"
+            },
+            "dependsOn": [
+                "[variables('keyVaultName')]",
+                "[variables('VNetName')]",
+                "[variables('aaName')]",
+                "keyVaultSecrets"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[concat(parameters('artifactsLocation'),'/provisionVirtualMachine.json',parameters('artifactsLocationSasToken'))]"
+                },
+                "parameters": {
+                    "vmName": {
+                        "value": "[parameters('vmNames')[copyIndex()]]"
+                    },
+                    "subnetId": {
+                        "value": "[reference(variables('VNetName')).outputs.subnetId.value]"
+                    },
+                    "nsgId": {
+                        "value": "[reference(variables('VNetName')).outputs.nsgId.value]"
+                    },
+                    "adminLogin": {
+                        "value": "[parameters('keyVaultSecrets').secrets[copyIndex()].secretName]"
+                    },
+                    "adminPassword": {
+                        "reference": {
+                            "keyVault": {
+                                "id": "[reference(variables('keyVaultName')).outputs.keyVaultId.value]"
+                            },
+                            "secretName": "[parameters('keyVaultSecrets').secrets[copyIndex()].secretName]"
+                        }
+                    },
+                    "nodeConfigurationName": {
+                        "value": "[concat('IISWebsite.', parameters('vmNames')[copyIndex()])]"
+                    },
+                    "AutomationAccResourceId": {
+                        "value": "[reference(variables('aaName')).outputs.AutomationAccResourceId.value]"
+                    },
+                    "AutomationAccRegistrationUrl": {
+                        "value": "[reference(variables('aaName')).outputs.AutomationAccRegistrationUrl.value]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    }
+                }
+            }
+        }
+    ],
+    "outputs": {
+    }
+}

@@ -1,0 +1,44 @@
+{
+    "$schema":  "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+    "contentVersion":  "1.0.0.0",
+    "parameters":  {
+                       "vmName":  {
+                                      "value":  "contoso-VMubuntu-64ildmzmz27eg"
+                                  },
+                       "nicName":  {
+                                       "value":  "contoso-VMubuntu-64ildmzmz27eg-NIC"
+                                   },
+                       "pubIPname":  {
+                                         "value":  "contoso-VMubuntu-64ildmzmz27eg-PIP"
+                                     },
+                       "osDiskName":  {
+                                          "value":  "contosovmubuntu64ildmzmz27eg-osdisk-20200312-072010.vhd"
+                                      },
+                       "osDiskURI":  {
+                                         "value":  "https://recoverysatest.blob.core.windows.net/contosovmubuntu64ildmzmz27eg-bbf39c7ef9cd4145bd8a233eb5875e6c/contosovmubuntu64ildmzmz27eg-osdisk-20200312-072010.vhd"
+                                     },
+                       "dataDisks":  {
+                                         "value":  [
+                                                       {
+                                                           "name":  "contosovmubuntu64ildmzmz27eg-datadisk-000-20200312-072010.vhd",
+                                                           "uri":  "https://recoverysatest.blob.core.windows.net/contosovmubuntu64ildmzmz27eg-bbf39c7ef9cd4145bd8a233eb5875e6c/contosovmubuntu64ildmzmz27eg-datadisk-000-20200312-072010.vhd"
+                                                       }
+                                                   ]
+                                     },
+                       "nsgID":  {
+                                     "value":  "/subscriptions/ecdf3446-334d-454b-a9f3-27f8aa846281/resourceGroups/DeployRGTest/providers/Microsoft.Network/networkSecurityGroups/contoso-NSG64ildmzmz27eg"
+                                 },
+                       "subnetID":  {
+                                        "value":  "/subscriptions/ecdf3446-334d-454b-a9f3-27f8aa846281/resourceGroups/DeployRGTest/providers/Microsoft.Network/virtualNetworks/contoso-VNet-64ildmzmz27eg/subnets/Front-End-subnet"
+                                    },
+                       "vmLocation":  {
+                                          "value":  "eastus"
+                                      },
+                       "vmSize":  {
+                                      "value":  "Standard_B1s"
+                                  },
+                       "recoveryVaultName":  {
+                                                 "value":  "contoso-RV-64ildmzmz27eg"
+                                             }
+                   }
+}

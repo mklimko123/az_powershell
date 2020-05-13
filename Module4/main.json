@@ -1,0 +1,153 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "modulesUrl": {
+      "type": "string"
+    },
+    "SASToken": {
+      "type": "securestring"
+    },
+    "VNetSettings": {
+      "type": "object"
+    },
+    "StorageAccountSettings": {
+      "type": "object"
+    },
+    "keyVaultName": {
+      "type": "string"
+    },
+    "objectId": {
+      "type": "string"
+    },
+    "secretName": {
+      "type": "string"
+    },
+    "secretValue": {
+      "type": "securestring"
+    },
+    "storagePrefix": {
+      "type": "string"
+    },
+    "vnetPrefix": {
+      "type": "string"
+    },
+    "vmPrefix": {
+      "type": "string"
+    },
+    "vmAdminLogin": {
+      "type": "string"
+    },
+    "dnsPrefix": {
+      "type": "string"
+    }
+  },
+  "resources": [
+    {
+      "name": "keyVault",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2018-05-01",
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(parameters('modulesUrl'),'/keyVault.json',parameters('SASToken'))]"
+        },
+        "parameters": {
+          "keyVaultName": {
+            "value": "[parameters('keyVaultName')]"
+          },
+          "objectID": {
+            "value": "[parameters('objectId')]"
+          },
+          "secretName": {
+            "value": "[parameters('secretName')]"
+          },
+          "secretValue": {
+            "value": "[parameters('secretValue')]"
+          }
+        }
+      }
+    },
+    {
+      "name": "storageAccount",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2018-05-01",
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(parameters('modulesUrl'),'/storageAccount.json',parameters('SASToken'))]"
+        },
+        "parameters": {
+          "StorageAccountSettings": {
+            "value": "[parameters('StorageAccountSettings')]"
+          },
+          "storagePrefix": {
+            "value": "[parameters('storagePrefix')]"
+          }
+        }
+      }
+    },
+    {
+      "name": "virtualNetwork",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2018-05-01",
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(parameters('modulesUrl'),'/virtualNetwork.json',parameters('SASToken'))]"
+        },
+        "parameters": {
+          "VNetSettings": {
+            "value": "[parameters('VNetSettings')]"
+          },
+          "vnetPrefix": {
+            "value": "[parameters('vnetPrefix')]"
+          }
+        }
+      }
+    },
+    {
+      "name": "virtualMachine",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2018-05-01",
+      "dependsOn": [
+        "virtualNetwork",
+        "keyVault"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(parameters('modulesUrl'),'/virtualMachine.json',parameters('SASToken'))]"
+        },
+        "parameters": {
+          "frontEndSubnetID": {
+            "value": "[reference('virtualNetwork').outputs.FrontEndSubnetID.value]"
+          },
+          "adminLogin": {
+            "value": "[parameters('vmAdminLogin')]"
+          },
+          "adminPassword": {
+            "reference": {
+              "keyVault": {
+                "id": "[reference('keyVault').outputs.keyVaultId.value]"
+              },
+              "secretName": "[parameters('secretName')]"
+            }
+          },
+          "vmPrefix": {
+            "value": "[parameters('vmPrefix')]"
+          },
+          "modulesUrl": {
+            "value": "[parameters('modulesUrl')]"
+          },
+          "SASToken": {
+            "value": "[parameters('SASToken')]"
+          },
+          "dnsPrefix": {
+            "value": "[parameters('dnsPrefix')]"
+          }
+        }
+      }
+    }
+  ]
+}

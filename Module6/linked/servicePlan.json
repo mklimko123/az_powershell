@@ -1,0 +1,43 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "AppServicePlanName": {
+            "type": "string"
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]"
+        },
+        "skuName": {
+            "type": "string",
+            "defaultValue": "S1"
+        },
+        "skuCapacity": {
+            "type": "int",
+            "defaultValue": 1
+        }
+    },
+    "variables": {
+    },
+    "resources": [
+        {
+            "apiVersion": "2018-02-01",
+            "name": "[parameters('AppServicePlanName')]",
+            "type": "Microsoft.Web/serverfarms",
+            "location": "[parameters('location')]",
+            "sku": {
+                "name": "[parameters('skuName')]",
+                "capacity": "[parameters('skuCapacity')]"
+            },
+            "properties": {
+            }
+        }
+    ],
+    "outputs": {
+        "serverFarmID": {
+            "type": "string",
+            "value": "[resourceId('Microsoft.Web/serverfarms',parameters('AppServicePlanName'))]"
+        }
+    }
+}

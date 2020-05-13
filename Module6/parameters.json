@@ -1,0 +1,39 @@
+{
+    "$schema":  "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+    "contentVersion":  "1.0.0.0",
+    "parameters":  {
+                       "modulesUrl":  {
+                                          "value":  "https://artifactorysatest.blob.core.windows.net/armdeployment"
+                                      },
+                       "objectID":  {
+                                        "value":  "08dfd6fa-51fa-4c5a-9424-cd411db0ece0"
+                                    },
+                       "projectNamePrefix":  {
+                                                 "value":  "mklimko"
+                                             },
+                       "EpamIpsPool":  {
+                                           "value":  [
+                                                         {
+                                                             "startIPaddress":  "86.57.255.88",
+                                                             "endIPaddress":  "86.57.255.95"
+                                                         },
+                                                         {
+                                                             "startIPaddress":  "213.184.231.0",
+                                                             "endIPaddress":  "213.184.231.255"
+                                                         },
+                                                         {
+                                                             "startIPaddress":  "213.184.243.0",
+                                                             "endIPaddress":  "213.184.243.255"
+                                                         },
+                                                         {
+                                                             "startIPaddress":  "217.21.56.0",
+                                                             "endIPaddress":  "217.21.56.255"
+                                                         },
+                                                         {
+                                                             "startIPaddress":  "217.21.63.0",
+                                                             "endIPaddress":  "217.21.63.255"
+                                                         }
+                                                     ]
+                                       }
+                   }
+}

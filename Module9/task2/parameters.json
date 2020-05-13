@@ -1,0 +1,21 @@
+{
+    "$schema":  "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+    "contentVersion":  "1.0.0.0",
+    "parameters":  {
+                       "artifactsLocation":  {
+                                                 "value":  "https://artifactorysatest.blob.core.windows.net/artifactorycontainermod9t2"
+                                             },
+                       "objectId":  {
+                                        "value":  "ba1cbc0b-2bcd-4ca1-a97a-89e879e6071c"
+                                    },
+                       "projectPrefix":  {
+                                             "value":  "mod9t2"
+                                         },
+                       "vmNames":  {
+                                       "value":  [
+                                                     "mod9t2Vm0",
+                                                     "mod9t2Vm1"
+                                                 ]
+                                   }
+                   }
+}

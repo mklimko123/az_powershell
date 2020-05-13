@@ -1,0 +1,143 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "artifactsLocation": {
+            "type": "string"
+        },
+        "artifactsLocationSasToken": {
+            "type": "securestring"
+        },
+        "automationAccountName": {
+            "type": "string"
+        },
+        "compileName": {
+            "type": "string",
+            "defaultValue": "[newGuid()]"
+        },
+        "nodeNames": {
+            "type": "array"
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]"
+        }
+    },
+    "variables": {
+        "dscConfigurations": {
+            "IISWebsite": {
+                "name": "IISWebsite",
+                "description": "Minimum configuration for a web server role",
+                "script": "[concat(parameters('artifactsLocation'), '/IISWebsite.ps1', parameters('artifactsLocationSasToken'))]"
+            }
+        },
+        "dscResources": {
+            "xNetworking": {
+                "name": "XNetworking",
+                "uri": "[concat(parameters('artifactsLocation'), '/xnetworking.5.7.0.nupkg', parameters('artifactsLocationSasToken') )]"
+            },
+            "xWebAdministration": {
+                "name": "xWebAdministration",
+                "uri": "[concat(parameters('artifactsLocation'), '/xwebadministration.3.1.1.nupkg', parameters('artifactsLocationSasToken'))]"
+            }
+        }
+    },
+    "resources": [
+        {
+            "name": "[parameters('automationAccountName')]",
+            "type": "Microsoft.Automation/automationAccounts",
+            "apiversion": "2018-01-15",
+            "location": "[parameters('location')]",
+            "properties": {
+                "sku": {
+                    "name": "Free"
+                }
+            },
+            "resources": [
+                {
+                    "name": "[variables('dscResources').xNetworking.name]",
+                    "type": "modules",
+                    "apiVersion": "2018-01-15",
+                    "location": "[parameters('location')]",
+                    "dependsOn": [
+                        "[parameters('AutomationAccountName')]"
+                    ],
+                    "properties": {
+                        "contentLink": {
+                            "uri": "[variables('dscResources').xNetworking.uri]"
+                        }
+                    }
+                },
+                {
+                    "name": "[variables('dscResources').xWebAdministration.name]",
+                    "type": "modules",
+                    "apiVersion": "2018-01-15",
+                    "location": "[parameters('location')]",
+                    "dependsOn": [
+                        "[parameters('AutomationAccountName')]"
+                    ],
+                    "properties": {
+                        "contentLink": {
+                            "uri": "[variables('dscResources').xWebAdministration.uri]"
+                        }
+                    }
+                },
+                {
+                    "name": "[variables('dscConfigurations').IISWebsite.name]",
+                    "type": "configurations",
+                    "apiVersion": "2018-01-15",
+                    "location": "[parameters('location')]",
+                    "dependsOn": [
+                        "[parameters('AutomationAccountName')]",
+                        "[variables('dscResources').xNetworking.name]",
+                        "[variables('dscResources').xWebAdministration.name]"
+                    ],
+                    "properties": {
+                        "state": "Published",
+                        "overwrite": "true",
+                        "source": {
+                            "type": "uri",
+                            "value": "[variables('dscConfigurations').IISWebsite.script]"
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "[concat(parameters('automationAccountName'), '/', parameters('compileName'), copyIndex())]",
+            "type": "Microsoft.Automation/automationAccounts/compilationjobs",
+            "apiVersion": "2018-01-15",
+            "copy": {
+                "name": "complationjobscopy",
+                "count": "[length(parameters('nodeNames'))]",
+                "mode": "Parallel"
+            },
+            "dependsOn": [
+                "[parameters('AutomationAccountName')]",
+                "[variables('dscConfigurations').IISWebsite.name]"
+            ],
+            "properties": {
+                "configuration": {
+                    "name": "[variables('dscConfigurations').IISWebsite.name]"
+                },
+                "parameters": {
+                    "NodeName": "[parameters('nodeNames')[copyIndex()]]"
+                }
+            }
+        }
+    ],
+    "outputs": {
+        "AutomationAccRegistrationUrl": {
+            "type": "string",
+            "value": "[reference(concat('Microsoft.Automation/automationAccounts/', parameters('automationAccountName'))).registrationUrl]"
+        },
+        "AutomationAccResourceId": {
+            "type": "string",
+            "value": "[resourceId('Microsoft.Automation/automationAccounts/', parameters('automationAccountName'))]"
+        },
+        "dscConfigName": {
+            "type": "string",
+            "value": "[variables('dscConfigurations').IISWebsite.name]"
+        }
+    }
+}

@@ -1,0 +1,60 @@
+{
+    "$schema":  "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+    "contentVersion":  "1.0.0.0",
+    "parameters":  {
+                       "VNetSettings":  {
+                                            "value":  {
+                                                          "name":  "VNet1",
+                                                          "addressPrefixes":  [
+                                                                                  {
+                                                                                      "name":  "VNet1Prefix",
+                                                                                      "addressPrefix":  "10.10.0.0/16"
+                                                                                  }
+                                                                              ],
+                                                          "subnets":  [
+                                                                          {
+                                                                              "name":  "front-end-subnet",
+                                                                              "addressPrefix":  "10.10.1.0/24"
+                                                                          },
+                                                                          {
+                                                                              "name":  "back-end-subnet",
+                                                                              "addressPrefix":  "10.10.2.0/24"
+                                                                          }
+                                                                      ]
+                                                      }
+                                        },
+                       "StorageAccountSettings":  {
+                                                      "value":  {
+                                                                    "storageSKU":  "Standard_LRS",
+                                                                    "storageKind":  "StorageV2"
+                                                                }
+                                                  },
+                       "modulesUrl":  {
+                                          "value":  "https://artsatest.blob.core.windows.net/armdeployment"
+                                      },
+                       "KeyVaultName":  {
+                                            "value":  "DeployKetVault-Test"
+                                        },
+                       "objectID":  {
+                                        "value":  "08dfd6fa-51fa-4c5a-9424-cd411db0ece0"
+                                    },
+                       "secretName":  {
+                                          "value":  "vmAdminPassword"
+                                      },
+                       "storagePrefix":  {
+                                             "value":  "mklimko"
+                                         },
+                       "vnetPrefix":  {
+                                          "value":  "mklimko"
+                                      },
+                       "vmPrefix":  {
+                                        "value":  "mklimko"
+                                    },
+                       "vmAdminLogin":  {
+                                            "value":  "vmLocalAdmin"
+                                        },
+                       "dnsPrefix":  {
+                                         "value":  "mklimko"
+                                     }
+                   }
+}

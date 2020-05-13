@@ -1,0 +1,65 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "templatesUri": {
+      "type": "string",
+      "defaultValue": "https://mklimkoartifactory.blob.core.windows.net/armtemplates"
+    },
+    "SASToken" : {
+      "type": "securestring"
+    },
+    "StorageAccountSettings": {
+      "type": "object"
+    },
+    "VNetSettings": {
+      "type": "object"
+    },
+    "storagePrefix": {
+      "type": "string"
+    }
+  },
+  "resources": [
+    {
+      "name": "storageAccount",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2018-05-01",
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(parameters('templatesUri'),'/storageAccount.json',parameters('SASToken'))]"
+        },
+        "parameters": {
+          "StorageAccountSettings": {
+            "value": "[parameters('StorageAccountSettings')]"
+          },
+          "storagePrefix": {
+            "value": "[parameters('storagePrefix')]"
+          }
+        }
+      }
+    },
+    {
+      "name": "virtualNetwork",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2018-05-01",
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(parameters('templatesUri'),'/virtualNetwork.json',parameters('SASToken'))]"
+        },
+        "parameters": {
+          "VNetSettings": {
+            "value": "[parameters('VNetSettings')]"
+          }
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "storageAccountName": {
+      "type": "string",
+      "value": "[reference('storageAccount').outputs.storageAccountName.value]"
+    }
+  }
+}

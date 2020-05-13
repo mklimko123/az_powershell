@@ -1,0 +1,64 @@
+{
+
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "TrafficManagerProfileName": {
+            "type": "string"
+        },
+        "TrafficManagerEndpointName": {
+            "type": "string"
+        },
+        "AppServiceID": {
+            "type": "array"
+        },
+        "AppServiceLocations": {
+            "type": "array"
+        }        
+    },    
+    "resources": [
+        {
+            "apiVersion": "2018-04-01",
+            "type": "Microsoft.Network/trafficManagerProfiles",
+            "name": "[parameters('TrafficManagerProfileName')]",
+            "location": "global",
+            "properties": {
+                "profileStatus": "Enabled",
+                "trafficRoutingMethod": "Performance",
+                "dnsConfig": {
+                    "relativeName": "[parameters('TrafficManagerProfileName')]",
+                    "ttl": 30
+                },
+                "monitorConfig": {
+                    "protocol": "HTTP",
+                    "port": 80,
+                    "path": "/"
+                },
+                "copy": [
+                    {
+                        "name": "endpoints",
+                        "count": "[length(parameters('AppServiceLocations'))]",
+                        "input": {
+                                    "name": "[concat(parameters('TrafficManagerEndpointName'),parameters('AppServiceLocations')[copyIndex('endpoints')])]",
+                                    "type": "Microsoft.Network/trafficManagerProfiles/azureEndpoints",
+                                    "properties": {
+                                        "endpointStatus": "Enabled",
+                                        "endpointMonitorStatus": "CheckingEndpoint",
+                                        "targetResourceId": "[parameters('AppServiceID')[copyIndex('endpoints')]]"
+                                    }
+                                }
+                    }
+                ]
+            }
+        }
+    ],
+    "outputs": {
+        "TMendpointNames": {
+            "type": "array",
+            "copy": {
+                "count": "[length(parameters('AppServiceLocations'))]",
+                "input": "[concat(parameters('TrafficManagerEndpointName'),parameters('AppServiceLocations')[copyIndex()])]"
+            }
+        }
+    }
+}

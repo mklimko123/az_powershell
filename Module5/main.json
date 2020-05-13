@@ -1,0 +1,115 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "modulesUrl": {
+            "type": "string"
+        },
+        "AppServiceLocations": {
+            "type": "array"
+        },
+        "SASToken": {
+            "type": "securestring"
+        }
+    },
+    "variables": {
+        "AppServicePlanName": "DemoASPContoso",
+        "AppServiceName": "DemoAppContoso",
+        "TrafficManagerProfileName": "DemoTMcontoso",
+        "TrafficManagerEndpointName": "DemoTMContosoEndpoint"
+    },
+    "resources": [
+        {
+            "name": "[concat('AppServicePlan', parameters('AppServiceLocations')[copyIndex()])]",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2019-10-01",
+            "copy": {
+                "name": "AppServicePlanLoop",
+                "count": "[length(parameters('AppServiceLocations'))]",
+                "mode": "Parallel"
+            },
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[concat(parameters('modulesUrl'),'/app_service_plan.json',parameters('SASToken'))]"
+                },
+                "parameters": {
+                    "AppServicePlanName": {
+                        "value": "[variables('AppServicePlanName')]"
+                    },
+                    "location": {
+                        "value": "[parameters('AppServiceLocations')[copyIndex()]]"
+                    }
+                }
+            }
+        },
+        {
+            "name": "[concat('AppService', parameters('AppServiceLocations')[copyIndex()])]",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2019-10-01",
+            "dependsOn": [
+                "[concat('AppServicePlan', parameters('AppServiceLocations')[copyIndex()])]"
+            ],
+            "copy": {
+                "name": "AppServiceLoop",
+                "count": "[length(parameters('AppServiceLocations'))]",
+                "mode": "Parallel"
+            },
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[concat(parameters('modulesUrl'),'/app_service.json',parameters('SASToken'))]"
+                },
+                "parameters": {
+                    "AppServiceName": {
+                        "value": "[variables('AppServiceName')]"
+                    },
+                    "ServerFarmID": {
+                        "value": "[reference(concat('AppServicePlan', parameters('AppServiceLocations')[copyIndex()])).outputs.ServerFarmID.value]"
+                    },
+                    "location": {
+                        "value": "[parameters('AppServiceLocations')[copyIndex()]]"
+                    }
+                }
+            }
+        },
+        {
+            "name": "TrafficManager",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2019-10-01",
+            "dependsOn": [
+                "[concat('AppServicePlan', parameters('AppServiceLocations')[0])]",
+                "[concat('AppServicePlan', parameters('AppServiceLocations')[1])]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[concat(parameters('modulesUrl'),'/traffic_manager.json',parameters('SASToken'))]"
+                },
+                "parameters": {
+                    "TrafficManagerProfileName": {
+                        "value": "[variables('TrafficManagerProfileName')]"
+                    },
+                    "TrafficManagerEndpointName": {
+                        "value": "[variables('TrafficManagerEndpointName')]"
+                    },
+                    "AppServiceID": {
+                        "value": [
+                            "[reference(concat('AppService', parameters('AppServiceLocations')[0])).outputs.AppServiceId.value]",
+                            "[reference(concat('AppService', parameters('AppServiceLocations')[1])).outputs.AppServiceId.value]"
+                        ]
+                    },
+                    "AppServiceLocations": {
+                        "value": "[parameters('AppServiceLocations')]"
+                    }
+                }
+            }
+        }
+    ],
+    "outputs": {
+        "TMendpointNames": {
+            "type": "array",
+            "value": "[reference('TrafficManager').outputs.TMendpointNames.value]"
+        }
+    }
+}
